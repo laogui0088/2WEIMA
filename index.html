@@ -150,6 +150,9 @@
             <label for="targetWebsite">目标网站</label>
             <select id="targetWebsite">
                 <option value="gsxt">国家企业信用信息公示系统</option>
+                <option value="tianyancha">天眼查</option>
+                <option value="qcc">企查查</option>
+                <option value="aiqicha">爱企查</option>
                 <option value="custom">自定义网址</option>
             </select>
         </div>
@@ -165,7 +168,8 @@
         </div>
 
         <div class="hint">
-            💡 提示: 生成的二维码包含完整URL,扫码后可直接打开并自动填充信息
+            💡 提示: 生成的二维码包含完整URL,扫码后可直接打开并自动填充信息<br>
+            ⚠️ 国家企业信用信息公示系统可能有访问频率限制,建议选择其他查询平台
         </div>
 
         <button class="btn" onclick="generateQRCode()">生成二维码</button>
@@ -212,7 +216,13 @@
             // 生成目标URL
             let targetUrl;
             if (targetWebsite === 'gsxt') {
-                targetUrl = `http://www.gsxt.gov.cn/index.html?uniscid=${uniscid}`;
+                targetUrl = `https://www.gsxt.gov.cn/index.html?uniscid=${uniscid}`;
+            } else if (targetWebsite === 'tianyancha') {
+                targetUrl = `https://www.tianyancha.com/search?key=${encodeURIComponent(uniscid)}`;
+            } else if (targetWebsite === 'qcc') {
+                targetUrl = `https://www.qcc.com/web/search?key=${encodeURIComponent(uniscid)}`;
+            } else if (targetWebsite === 'aiqicha') {
+                targetUrl = `https://aiqicha.baidu.com/s?q=${encodeURIComponent(uniscid)}`;
             } else {
                 targetUrl = customUrl.replace('{CODE}', encodeURIComponent(uniscid));
             }
