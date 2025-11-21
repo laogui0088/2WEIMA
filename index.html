@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企业信息二维码生成器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            color: #555;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        #qrcodeContainer {
+            display: none;
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        #qrcode {
+            display: inline-block;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .qr-info {
+            margin-top: 15px;
+            color: #666;
+            font-size: 13px;
+        }
+
+        .download-btn {
+            margin-top: 15px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .hint {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #666;
+            margin-top: 15px;
+        }
+
+        .url-preview {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            word-break: break-all;
+            font-size: 12px;
+            color: #555;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏢 企业信息二维码生成器</h1>
+        <p class="subtitle">扫码自动填充查询栏</p>
+
+        <div class="input-group">
+            <label for="targetWebsite">目标网站</label>
+            <select id="targetWebsite">
+                <option value="gsxt">国家企业信用信息公示系统</option>
+                <option value="custom">自定义网址</option>
+            </select>
+        </div>
+
+        <div class="input-group" id="customUrlGroup" style="display: none;">
+            <label for="customUrl">自定义网址 (需包含参数占位符)</label>
+            <input type="text" id="customUrl" placeholder="例如: https://example.com/search?q={CODE}">
+        </div>
+
+        <div class="input-group">
+            <label for="uniscid">统一社会信用代码</label>
+            <input type="text" id="uniscid" placeholder="请输入18位统一社会信用代码" maxlength="18">
+        </div>
+
+        <div class="hint">
+            💡 提示: 生成的二维码包含完整URL,扫码后可直接打开并自动填充信息
+        </div>
+
+        <button class="btn" onclick="generateQRCode()">生成二维码</button>
+
+        <div id="qrcodeContainer">
+            <div id="qrcode"></div>
+            <div class="qr-info">扫描二维码即可访问</div>
+            <div class="url-preview" id="urlPreview"></div>
+            <button class="btn download-btn" onclick="downloadQRCode()">下载二维码</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script>
+        let qrcodeInstance = null;
+
+        // 监听网站选择变化
+        document.getElementById('targetWebsite').addEventListener('change', function() {
+            const customUrlGroup = document.getElementById('customUrlGroup');
+            customUrlGroup.style.display = this.value === 'custom' ? 'block' : 'none';
+        });
+
+        function generateQRCode() {
+            const targetWebsite = document.getElementById('targetWebsite').value;
+            const uniscid = document.getElementById('uniscid').value.trim();
+            const customUrl = document.getElementById('customUrl').value.trim();
+
+            // 验证输入
+            if (!uniscid) {
+                alert('请输入统一社会信用代码');
+                return;
+            }
+
+            if (uniscid.length !== 18) {
+                alert('统一社会信用代码应为18位');
+                return;
+            }
+
+            if (targetWebsite === 'custom' && !customUrl) {
+                alert('请输入自定义网址');
+                return;
+            }
+
+            // 生成目标URL
+            let targetUrl;
+            if (targetWebsite === 'gsxt') {
+                targetUrl = `http://www.gsxt.gov.cn/index.html?uniscid=${uniscid}`;
+            } else {
+                targetUrl = customUrl.replace('{CODE}', encodeURIComponent(uniscid));
+            }
+
+            // 显示URL预览
+            const urlPreview = document.getElementById('urlPreview');
+            urlPreview.textContent = `目标URL: ${targetUrl}`;
+            urlPreview.style.display = 'block';
+
+            // 清除旧的二维码
+            const qrcodeDiv = document.getElementById('qrcode');
+            qrcodeDiv.innerHTML = '';
+
+            // 生成新二维码
+            qrcodeInstance = new QRCode(qrcodeDiv, {
+                text: targetUrl,
+                width: 256,
+                height: 256,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            // 显示二维码容器
+            document.getElementById('qrcodeContainer').style.display = 'block';
+
+            // 平滑滚动到二维码
+            setTimeout(() => {
+                qrcodeDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        }
+
+        function downloadQRCode() {
+            const canvas = document.querySelector('#qrcode canvas');
+            if (!canvas) {
+                alert('请先生成二维码');
+                return;
+            }
+
+            // 转换为图片并下载
+            const url = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            const uniscid = document.getElementById('uniscid').value;
+            link.download = `企业信息二维码_${uniscid}.png`;
+            link.href = url;
+            link.click();
+        }
+
+        // 回车键快捷生成
+        document.getElementById('uniscid').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                generateQRCode();
+            }
+        });
+    </script>
+</body>
+</html>
